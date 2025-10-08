@@ -210,29 +210,517 @@ def render_html_content(
     Returns:
         HTML字符串
     """
-    # 由于 HTML 模板非常长（~800行），保持在 main.py 的实现
-    # 这里暂时重用 main.py 的实现
-    # TODO: 后续可以考虑使用模板引擎（如 Jinja2）来管理 HTML
+    now = get_beijing_time()
     
-    from pathlib import Path
-    import sys
+    # 获取标题和时间
+    time_str = now.strftime("%Y-%m-%d %H:%M:%S")
     
-    # 临时导入 main.py 的 render_html_content
-    # 这是一个过渡方案，避免直接复制 800 行 HTML 模板代码
-    main_backup_path = Path(__file__).parent.parent.parent / "main_v2.2.0_backup.py"
-    
-    if main_backup_path.exists():
-        # 动态导入 main_v2.2.0_backup.py 的 render_html_content
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("main_backup", main_backup_path)
-        main_backup = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(main_backup)
-        
-        return main_backup.render_html_content(report_data, total_titles, is_daily_summary, mode)
+    if mode == "test":
+        title = "🧪 测试报告"
+        subtitle = time_str
+    elif mode == "current":
+        title = "📊 当前榜单汇总"
+        subtitle = time_str
+    elif mode == "incremental":
+        title = "🆕 当日新增"
+        subtitle = time_str
     else:
-        # 如果备份不存在，使用简化版 HTML
-        logger.warning("main_v2.2.0_backup.py 不存在，使用简化版 HTML")
-        return _render_simple_html(report_data, total_titles, mode)
+        title = "📊 当日汇总"
+        subtitle = time_str
+    
+    test_mode_class = "test-mode" if mode == "test" else ""
+    
+    html = f'''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热点新闻分析</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        * {{ box-sizing: border-box; }}
+        body {{ 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            margin: 0; 
+            padding: 16px; 
+            background: #fafafa;
+            color: #333;
+            line-height: 1.5;
+        }}
+        
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+        }}
+        
+        .header {{
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 32px 24px;
+            text-align: center;
+            position: relative;
+        }}
+        
+        .header.test-mode {{
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }}
+        
+        .save-btn {{
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }}
+        
+        .save-btn:hover {{
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.4);
+        }}
+        
+        .title {{
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 0 8px;
+        }}
+        
+        .subtitle {{
+            font-size: 14px;
+            opacity: 0.95;
+            margin: 0;
+        }}
+        
+        .content {{
+            padding: 24px;
+        }}
+        
+        .section {{
+            margin-bottom: 32px;
+        }}
+        
+        .section:last-child {{
+            margin-bottom: 0;
+        }}
+        
+        .section-title {{
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }}
+        
+        .section-count {{
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 500;
+        }}
+        
+        .news-item {{
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }}
+        
+        .news-item:hover {{
+            background: #f3f4f6;
+            border-color: #e5e7eb;
+            transform: translateY(-1px);
+        }}
+        
+        .news-item:last-child {{
+            margin-bottom: 0;
+        }}
+        
+        .news-title {{
+            font-size: 15px;
+            font-weight: 500;
+            color: #1f2937;
+            margin: 0 0 8px;
+            line-height: 1.5;
+        }}
+        
+        .news-title a {{
+            color: inherit;
+            text-decoration: none;
+        }}
+        
+        .news-title a:hover {{
+            color: #4f46e5;
+        }}
+        
+        .news-meta {{
+            font-size: 13px;
+            color: #6b7280;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }}
+        
+        .meta-item {{
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }}
+        
+        .rank-list {{
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }}
+        
+        .rank {{
+            display: inline-block;
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }}
+        
+        .rank.hot {{
+            background: #fef2f2;
+            color: #dc2626;
+        }}
+        
+        .badge {{
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }}
+        
+        .badge.new {{
+            background: #fef3c7;
+            color: #d97706;
+        }}
+        
+        .badge.multiple {{
+            background: #dbeafe;
+            color: #2563eb;
+        }}
+        
+        .source-group {{
+            margin-bottom: 24px;
+        }}
+        
+        .source-title {{
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin: 0 0 12px;
+            padding-left: 12px;
+            border-left: 3px solid #4f46e5;
+        }}
+        
+        .empty {{
+            text-align: center;
+            padding: 48px 24px;
+            color: #9ca3af;
+        }}
+        
+        .empty-icon {{
+            font-size: 48px;
+            margin-bottom: 16px;
+        }}
+        
+        .empty-text {{
+            font-size: 14px;
+        }}
+        
+        .stats {{
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }}
+        
+        .stat-row {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }}
+        
+        .stat-row:last-child {{
+            border-bottom: none;
+        }}
+        
+        .stat-label {{
+            font-size: 14px;
+            color: #6b7280;
+        }}
+        
+        .stat-value {{
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+        }}
+        
+        @media (max-width: 600px) {{
+            body {{
+                padding: 8px;
+            }}
+            
+            .container {{
+                border-radius: 8px;
+            }}
+            
+            .header {{
+                padding: 24px 16px;
+            }}
+            
+            .title {{
+                font-size: 20px;
+            }}
+            
+            .content {{
+                padding: 16px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header {test_mode_class}">
+            <button class="save-btn" onclick="saveAsImage()">保存为图片</button>
+            <h1 class="title">{title}</h1>
+            <p class="subtitle">{subtitle}</p>
+        </div>
+        
+        <div class="content" id="content">
+'''
+    
+    # 统计信息
+    total_matched = sum(len(stat.get("titles", [])) for stat in report_data.get("stats", []))
+    total_new = sum(len(source.get("titles", [])) for source in report_data.get("new_titles", []))
+    
+    html += f'''
+            <div class="stats">
+                <div class="stat-row">
+                    <span class="stat-label">📊 总标题数</span>
+                    <span class="stat-value">{total_titles}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">🎯 匹配新闻</span>
+                    <span class="stat-value">{total_matched}</span>
+                </div>
+'''
+    
+    if not report_data.get("hide_new_section", False):
+        html += f'''
+                <div class="stat-row">
+                    <span class="stat-label">🆕 新增新闻</span>
+                    <span class="stat-value">{total_new}</span>
+                </div>
+'''
+    
+    html += '''
+            </div>
+'''
+    
+    # 匹配的新闻
+    if report_data.get("stats"):
+        for stat in report_data["stats"]:
+            word = stat.get("word", "未分类")
+            titles = stat.get("titles", [])
+            count = len(titles)
+            
+            html += f'''
+            <div class="section">
+                <div class="section-title">
+                    <span>🔥 {word}</span>
+                    <span class="section-count">{count} 条</span>
+                </div>
+'''
+            
+            for title_data in titles:
+                title = title_data.get("title", "")
+                source = title_data.get("source_name", "")
+                time_display = title_data.get("time_display", "")
+                url = title_data.get("url", "")
+                ranks = title_data.get("ranks", [])
+                count = title_data.get("count", 1)
+                is_new = title_data.get("is_new", False)
+                rank_threshold = title_data.get("rank_threshold", 10)
+                
+                # 生成排名列表
+                rank_html = ""
+                if ranks:
+                    rank_html = '<div class="rank-list">'
+                    for rank in ranks[:5]:  # 最多显示5个排名
+                        rank_class = "rank hot" if rank <= rank_threshold else "rank"
+                        rank_html += f'<span class="{rank_class}">{rank}</span>'
+                    if len(ranks) > 5:
+                        rank_html += f'<span class="rank">+{len(ranks)-5}</span>'
+                    rank_html += '</div>'
+                
+                # 生成标题链接
+                if url:
+                    title_html = f'<a href="{url}" target="_blank">{title}</a>'
+                else:
+                    title_html = title
+                
+                html += f'''
+                <div class="news-item">
+                    <div class="news-title">{title_html}</div>
+                    <div class="news-meta">
+                        <span class="meta-item">📰 {source}</span>
+'''
+                
+                if time_display:
+                    html += f'                        <span class="meta-item">⏰ {time_display}</span>\n'
+                
+                if rank_html:
+                    html += f'                        <span class="meta-item">{rank_html}</span>\n'
+                
+                if count > 1:
+                    html += f'                        <span class="badge multiple">出现 {count} 次</span>\n'
+                
+                if is_new:
+                    html += '                        <span class="badge new">NEW</span>\n'
+                
+                html += '''
+                    </div>
+                </div>
+'''
+            
+            html += '''
+            </div>
+'''
+    else:
+        html += '''
+            <div class="empty">
+                <div class="empty-icon">📭</div>
+                <div class="empty-text">暂无匹配的新闻</div>
+            </div>
+'''
+    
+    # 新增新闻
+    if not report_data.get("hide_new_section", False) and report_data.get("new_titles"):
+        html += '''
+            <div class="section">
+                <div class="section-title">
+                    <span>🆕 新增新闻</span>
+                </div>
+'''
+        
+        for source in report_data["new_titles"]:
+            source_name = source.get("source_name", "")
+            titles = source.get("titles", [])
+            
+            if titles:
+                html += f'''
+                <div class="source-group">
+                    <div class="source-title">{source_name}</div>
+'''
+                
+                for title_data in titles:
+                    title = title_data.get("title", "")
+                    url = title_data.get("url", "")
+                    ranks = title_data.get("ranks", [])
+                    rank_threshold = title_data.get("rank_threshold", 10)
+                    
+                    # 生成排名
+                    rank_html = ""
+                    if ranks:
+                        rank_html = '<div class="rank-list">'
+                        for rank in ranks[:5]:
+                            rank_class = "rank hot" if rank <= rank_threshold else "rank"
+                            rank_html += f'<span class="{rank_class}">{rank}</span>'
+                        rank_html += '</div>'
+                    
+                    # 生成标题链接
+                    if url:
+                        title_html = f'<a href="{url}" target="_blank">{title}</a>'
+                    else:
+                        title_html = title
+                    
+                    html += f'''
+                    <div class="news-item">
+                        <div class="news-title">{title_html}</div>
+                        <div class="news-meta">
+                            <span class="meta-item">📰 {source_name}</span>
+'''
+                    
+                    if rank_html:
+                        html += f'                            <span class="meta-item">{rank_html}</span>\n'
+                    
+                    html += '''
+                            <span class="badge new">NEW</span>
+                        </div>
+                    </div>
+'''
+                
+                html += '''
+                </div>
+'''
+        
+        html += '''
+            </div>
+'''
+    
+    html += '''
+        </div>
+    </div>
+    
+    <script>
+        function saveAsImage() {
+            const content = document.getElementById('content');
+            const button = document.querySelector('.save-btn');
+            
+            button.textContent = '生成中...';
+            button.disabled = true;
+            
+            html2canvas(content, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                logging: false,
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = '热点新闻_' + new Date().getTime() + '.png';
+                link.href = canvas.toDataURL();
+                link.click();
+                
+                button.textContent = '保存为图片';
+                button.disabled = false;
+            }).catch(error => {
+                console.error('生成图片失败:', error);
+                button.textContent = '保存失败';
+                setTimeout(() => {
+                    button.textContent = '保存为图片';
+                    button.disabled = false;
+                }, 2000);
+            });
+        }}
+    </script>
+</body>
+</html>
+'''
+    
+    return html
 
 
 def _render_simple_html(

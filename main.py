@@ -22,6 +22,7 @@ from trendradar.core import (
     read_all_today_titles,
     detect_latest_new_titles,
     count_word_frequency,
+    generate_html_report,
 )
 
 # 导入推送模块
@@ -262,10 +263,25 @@ class TrendRadarApp:
         new_titles: Dict,
         id_to_name: Dict
     ) -> str:
-        """生成 HTML 报告（v3.0 待完善）"""
-        logger.info("⏭  HTML 报告生成功能待完善（v3.1 开发中）")
-        logger.info(f"📊 本次运行共匹配 {len(stats)} 个词组的新闻")
-        return None
+        """生成 HTML 报告"""
+        mode = self.config.get("REPORT_MODE", "daily")
+        
+        try:
+            html_file = generate_html_report(
+                stats=stats,
+                total_titles=total_titles,
+                failed_ids=failed,
+                new_titles=new_titles,
+                id_to_name=id_to_name,
+                mode=mode,
+                is_daily_summary=True
+            )
+            
+            logger.info(f"📄 HTML报告已生成: {html_file}")
+            return html_file
+        except Exception as e:
+            logger.error(f"❌ HTML报告生成失败: {e}", exc_info=True)
+            return None
     
     def _send_notifications(
         self,
@@ -410,8 +426,8 @@ class TrendRadarApp:
             self._send_notifications(stats, failed, new_titles, id_to_name)
             
             # 6. 打开浏览器
-            if html_file:
-                self._open_browser(html_file)
+            #if html_file:
+            #    self._open_browser(html_file)
             
             # 完成
             logger.info("=" * 70)
