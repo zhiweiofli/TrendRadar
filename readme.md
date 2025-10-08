@@ -533,6 +533,16 @@ frequency_words.txt 文件增加了一个【必须词】功能，使用 + 号
         | **当前榜单模式**<br/>`current` | 按时推送 | 当前榜单匹配新闻<br/>+ 新增新闻区域 | 实时热点追踪<br/>了解当前最火的内容 |
         | **增量监控模式**<br/>`incremental` | 有新增才推送 | 新出现的匹配频率词新闻 | 避免重复信息干扰<br/>高频监控场景 |
 
+    - **测试模式**: 用于调试新闻抓取功能
+      - 在 `config/config.yaml` 中设置 `app.test_mode: true` 或设置环境变量 `TEST_MODE=true`
+      - 测试模式特性：
+        - 🔍 显示详细的调试信息和抓取日志
+        - 📊 显示每个平台的抓取结果统计
+        - 📄 生成带有调试信息的HTML报告
+        - 🚫 自动禁用通知推送
+        - 📱 自动发布到 GitHub Pages（如果启用）
+      - 适用场景：调试配置、验证新闻源、排查问题
+
     - **关键词配置**: 修改 [config/frequency_words.txt](config/frequency_words.txt) 文件，添加你关心的关键词
     
     <details>
