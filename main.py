@@ -3656,6 +3656,120 @@ class NewsAnalyzer:
 
         return summary_html
 
+    def _generate_fallback_index_html(self) -> None:
+        """生成后备的 index.html，显示当前时间和无数据状态"""
+        beijing_time = get_beijing_time()
+        current_time = beijing_time.strftime("%m-%d %H:%M")
+        
+        fallback_html = f'''<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>热点新闻分析</title>
+    <style>
+      * {{
+        box-sizing: border-box;
+      }}
+      body {{
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        margin: 0;
+        padding: 16px;
+        background: #fafafa;
+        color: #333;
+        line-height: 1.5;
+      }}
+      .container {{
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+      }}
+      .header {{
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        padding: 32px 24px;
+        text-align: center;
+      }}
+      .header-title {{
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0 0 20px 0;
+      }}
+      .header-info {{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        font-size: 14px;
+        opacity: 0.95;
+      }}
+      .info-item {{
+        text-align: center;
+      }}
+      .info-label {{
+        display: block;
+        font-size: 12px;
+        opacity: 0.8;
+        margin-bottom: 4px;
+      }}
+      .info-value {{
+        font-weight: 600;
+        font-size: 16px;
+      }}
+      .content {{
+        padding: 24px;
+        text-align: center;
+      }}
+      .no-data {{
+        color: #666;
+        font-size: 16px;
+        margin-bottom: 16px;
+      }}
+      .retry-info {{
+        color: #999;
+        font-size: 14px;
+      }}
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-title">热点新闻分析</div>
+        <div class="header-info">
+          <div class="info-item">
+            <span class="info-label">运行状态</span>
+            <span class="info-value">正常</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">数据状态</span>
+            <span class="info-value">暂无</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">最后检查</span>
+            <span class="info-value">{current_time}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">下次更新</span>
+            <span class="info-value">下小时</span>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="no-data">暂时没有可用的新闻数据</div>
+        <div class="retry-info">系统每小时自动获取最新热点新闻，请稍后再来查看</div>
+      </div>
+    </div>
+  </body>
+</html>'''
+        
+        # 写入根目录的 index.html
+        with open("index.html", "w", encoding="utf-8") as f:
+            f.write(fallback_html)
+        
+        print(f"已生成后备 index.html，显示时间: {current_time}")
+
     def run(self) -> None:
         """执行分析流程"""
         try:
@@ -3665,10 +3779,23 @@ class NewsAnalyzer:
 
             results, id_to_name, failed_ids = self._crawl_data()
 
-            self._execute_mode_strategy(mode_strategy, results, id_to_name, failed_ids)
+            summary_html = self._execute_mode_strategy(mode_strategy, results, id_to_name, failed_ids)
+            
+            # 如果是 daily 模式但没有生成汇总报告，生成后备的 index.html 以确保 GitHub Pages 显示最新时间
+            if (mode_strategy["should_generate_summary"] and 
+                mode_strategy.get("summary_mode") == "daily" and 
+                not summary_html):
+                print("未生成数据汇总，生成后备页面以更新时间戳...")
+                self._generate_fallback_index_html()
 
         except Exception as e:
             print(f"分析流程执行出错: {e}")
+            # 即使出错也要更新 index.html 显示最新检查时间
+            try:
+                self._generate_fallback_index_html()
+                print("已生成错误状态的后备页面")
+            except Exception as fallback_error:
+                print(f"生成后备页面也失败: {fallback_error}")
             raise
 
 
