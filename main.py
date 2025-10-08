@@ -35,6 +35,7 @@ def load_config():
     config = {
         "VERSION_CHECK_URL": config_data["app"]["version_check_url"],
         "SHOW_VERSION_UPDATE": config_data["app"]["show_version_update"],
+        "TEST_MODE": os.environ.get("TEST_MODE", "").lower() == "true" or config_data["app"].get("test_mode", False),
         "REQUEST_INTERVAL": config_data["crawler"]["request_interval"],
         "REPORT_MODE": config_data["report"]["mode"],
         "RANK_THRESHOLD": config_data["report"]["rank_threshold"],
@@ -1467,7 +1468,9 @@ def generate_html_report(
 ) -> str:
     """生成HTML报告"""
     if is_daily_summary:
-        if mode == "current":
+        if mode == "test":
+            filename = "测试报告.html"
+        elif mode == "current":
             filename = "当前榜单汇总.html"
         elif mode == "incremental":
             filename = "当日增量.html"
@@ -1536,6 +1539,10 @@ def render_html_content(
                 padding: 32px 24px;
                 text-align: center;
                 position: relative;
+            }
+            
+            .header.test-mode {
+                background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             }
             
             .save-btn {
@@ -1920,7 +1927,7 @@ def render_html_content(
     </head>
     <body>
         <div class="container">
-            <div class="header">
+            <div class="header""" + (" test-mode" if mode == "test" else "") + """">
                 <button class="save-btn" onclick="saveAsImage()">保存为图片</button>
                 <div class="header-title">热点新闻分析</div>
                 <div class="header-info">
@@ -1930,7 +1937,9 @@ def render_html_content(
 
     # 处理报告类型显示
     if is_daily_summary:
-        if mode == "current":
+        if mode == "test":
+            html += "🧪 测试模式"
+        elif mode == "current":
             html += "当前榜单"
         elif mode == "incremental":
             html += "增量模式"
@@ -1973,6 +1982,30 @@ def render_html_content(
             </div>
             
             <div class="content">"""
+
+    # Add debug section for test mode
+    if mode == "test":
+        html += """
+                <div class="debug-section" style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                    <div style="font-weight: 600; color: #92400e; margin-bottom: 12px; font-size: 15px;">🔍 调试信息</div>
+                    <div style="font-size: 13px; color: #78350f; line-height: 1.6;">
+                        <div style="margin-bottom: 8px;">
+                            <strong>说明：</strong>测试模式用于调试新闻抓取功能
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <strong>功能：</strong>
+                            <ul style="margin: 4px 0; padding-left: 20px;">
+                                <li>显示所有平台的抓取结果</li>
+                                <li>显示详细的调试日志</li>
+                                <li>禁用通知推送</li>
+                                <li>自动生成到 GitHub Pages</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong>总新闻数：</strong>""" + str(total_titles) + """
+                        </div>
+                    </div>
+                </div>"""
 
     # 处理失败ID错误信息
     if report_data["failed_ids"]:
@@ -3190,11 +3223,21 @@ class NewsAnalyzer:
             "should_generate_summary": True,
             "summary_mode": "daily",
         },
+        "test": {
+            "mode_name": "测试模式",
+            "description": "测试模式（显示详细调试信息，用于调试新闻抓取）",
+            "realtime_report_type": "测试报告",
+            "summary_report_type": "测试汇总",
+            "should_send_realtime": False,
+            "should_generate_summary": True,
+            "summary_mode": "test",
+        },
     }
 
     def __init__(self):
         self.request_interval = CONFIG["REQUEST_INTERVAL"]
-        self.report_mode = CONFIG["REPORT_MODE"]
+        self.test_mode = CONFIG["TEST_MODE"]
+        self.report_mode = "test" if self.test_mode else CONFIG["REPORT_MODE"]
         self.rank_threshold = CONFIG["RANK_THRESHOLD"]
         self.is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
         self.is_docker_container = self._detect_docker_environment()
@@ -3388,6 +3431,11 @@ class NewsAnalyzer:
         id_to_name: Optional[Dict] = None,
     ) -> bool:
         """统一的通知发送逻辑，包含所有判断条件"""
+        # 测试模式下禁用通知
+        if self.test_mode:
+            print(f"测试模式：跳过{report_type}通知发送")
+            return False
+
         has_webhook = self._has_webhook_configured()
 
         if (
@@ -3502,13 +3550,27 @@ class NewsAnalyzer:
         now = get_beijing_time()
         print(f"当前北京时间: {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
+        if self.test_mode:
+            print("=" * 60)
+            print("🧪 测试模式已启用（TEST_MODE=True）")
+            print("=" * 60)
+            print("📋 测试模式说明:")
+            print("  - 显示详细的调试信息")
+            print("  - 显示每个平台的抓取详情")
+            print("  - 生成包含调试信息的HTML报告")
+            print("  - 禁用通知推送")
+            print("=" * 60)
+
         if not CONFIG["ENABLE_CRAWLER"]:
             print("爬虫功能已禁用（ENABLE_CRAWLER=False），程序退出")
             return
 
         has_webhook = self._has_webhook_configured()
-        if not CONFIG["ENABLE_NOTIFICATION"]:
-            print("通知功能已禁用（ENABLE_NOTIFICATION=False），将只进行数据抓取")
+        if not CONFIG["ENABLE_NOTIFICATION"] or self.test_mode:
+            if self.test_mode:
+                print("测试模式下通知功能已自动禁用，将只进行数据抓取和调试")
+            else:
+                print("通知功能已禁用（ENABLE_NOTIFICATION=False），将只进行数据抓取")
         elif not has_webhook:
             print("未配置任何webhook URL，将只进行数据抓取，不发送通知")
         else:
@@ -3533,9 +3595,25 @@ class NewsAnalyzer:
         print(f"开始爬取数据，请求间隔 {self.request_interval} 毫秒")
         ensure_directory_exists("output")
 
+        if self.test_mode:
+            print("\n" + "=" * 60)
+            print("🔍 测试模式 - 详细抓取信息:")
+            print("=" * 60)
+
         results, id_to_name, failed_ids = self.data_fetcher.crawl_websites(
             ids, self.request_interval
         )
+
+        if self.test_mode:
+            print("\n" + "=" * 60)
+            print("📊 测试模式 - 抓取结果统计:")
+            print("=" * 60)
+            for platform_id, titles in results.items():
+                platform_name = id_to_name.get(platform_id, platform_id)
+                print(f"  {platform_name} ({platform_id}): {len(titles)} 条新闻")
+            if failed_ids:
+                print(f"\n  ❌ 失败的平台: {', '.join(failed_ids)}")
+            print("=" * 60 + "\n")
 
         title_file = save_titles_to_file(results, id_to_name, failed_ids)
         print(f"标题已保存到: {title_file}")
