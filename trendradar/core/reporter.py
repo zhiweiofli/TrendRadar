@@ -3,13 +3,14 @@ HTML 报告生成模块
 
 提供 HTML 报告的准备、渲染和生成功能
 """
+
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from ..utils.file_utils import get_output_path, clean_title, html_escape
-from ..utils.time_utils import get_beijing_time, format_time_filename
+from ..utils.config import load_config, load_frequency_words
+from ..utils.file_utils import clean_title, get_output_path, html_escape
 from ..utils.logger import get_logger
-from ..utils.config import load_frequency_words, load_config
+from ..utils.time_utils import format_time_filename, get_beijing_time
 from .matcher import format_rank_display, matches_word_groups
 
 logger = get_logger(__name__)
@@ -26,14 +27,14 @@ def prepare_report_data(
     mode: str = "daily",
 ) -> Dict:
     """准备报告数据
-    
+
     Args:
         stats: 统计数据列表
         failed_ids: 失败的平台ID列表
         new_titles: 新增标题字典
         id_to_name: ID到名称的映射
         mode: 报告模式
-    
+
     Returns:
         包含处理后数据的字典
     """
@@ -97,7 +98,7 @@ def prepare_report_data(
             # 计算时间显示
             first_time = title_data.get("first_time", "")
             last_time = title_data.get("last_time", "")
-            
+
             if first_time and last_time:
                 if first_time == last_time:
                     time_display = first_time
@@ -105,10 +106,12 @@ def prepare_report_data(
                     time_display = f"{first_time}～{last_time}"
             else:
                 time_display = ""
-            
+
             processed_title = {
                 "title": title_data.get("title", ""),
-                "source_name": title_data.get("source_name", title_data.get("platform_name", "")),
+                "source_name": title_data.get(
+                    "source_name", title_data.get("platform_name", "")
+                ),
                 "time_display": time_display,
                 "count": title_data.get("count", 1),
                 "ranks": title_data.get("ranks", []),
@@ -148,7 +151,7 @@ def generate_html_report(
     is_daily_summary: bool = False,
 ) -> str:
     """生成HTML报告
-    
+
     Args:
         stats: 统计数据列表
         total_titles: 总标题数
@@ -157,7 +160,7 @@ def generate_html_report(
         id_to_name: ID到名称的映射
         mode: 报告模式
         is_daily_summary: 是否为当日汇总
-    
+
     Returns:
         HTML文件路径
     """
@@ -200,21 +203,21 @@ def render_html_content(
     mode: str = "daily",
 ) -> str:
     """渲染HTML内容
-    
+
     Args:
         report_data: 报告数据
         total_titles: 总标题数
         is_daily_summary: 是否为当日汇总
         mode: 报告模式
-    
+
     Returns:
         HTML字符串
     """
     now = get_beijing_time()
-    
+
     # 获取标题和时间
     time_str = now.strftime("%Y-%m-%d %H:%M:%S")
-    
+
     if mode == "test":
         title = "🧪 测试报告"
         subtitle = time_str
@@ -227,10 +230,10 @@ def render_html_content(
     else:
         title = "📊 当日汇总"
         subtitle = time_str
-    
+
     test_mode_class = "test-mode" if mode == "test" else ""
-    
-    html = f'''<!DOCTYPE html>
+
+    html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -511,13 +514,17 @@ def render_html_content(
         </div>
         
         <div class="content" id="content">
-'''
-    
+"""
+
     # 统计信息
-    total_matched = sum(len(stat.get("titles", [])) for stat in report_data.get("stats", []))
-    total_new = sum(len(source.get("titles", [])) for source in report_data.get("new_titles", []))
-    
-    html += f'''
+    total_matched = sum(
+        len(stat.get("titles", [])) for stat in report_data.get("stats", [])
+    )
+    total_new = sum(
+        len(source.get("titles", [])) for source in report_data.get("new_titles", [])
+    )
+
+    html += f"""
             <div class="stats">
                 <div class="stat-row">
                     <span class="stat-label">📊 总标题数</span>
@@ -527,35 +534,35 @@ def render_html_content(
                     <span class="stat-label">🎯 匹配新闻</span>
                     <span class="stat-value">{total_matched}</span>
                 </div>
-'''
-    
+"""
+
     if not report_data.get("hide_new_section", False):
-        html += f'''
+        html += f"""
                 <div class="stat-row">
                     <span class="stat-label">🆕 新增新闻</span>
                     <span class="stat-value">{total_new}</span>
                 </div>
-'''
-    
-    html += '''
+"""
+
+    html += """
             </div>
-'''
-    
+"""
+
     # 匹配的新闻
     if report_data.get("stats"):
         for stat in report_data["stats"]:
             word = stat.get("word", "未分类")
             titles = stat.get("titles", [])
             count = len(titles)
-            
-            html += f'''
+
+            html += f"""
             <div class="section">
                 <div class="section-title">
                     <span>🔥 {word}</span>
                     <span class="section-count">{count} 条</span>
                 </div>
-'''
-            
+"""
+
             for title_data in titles:
                 title = title_data.get("title", "")
                 source = title_data.get("source_name", "")
@@ -565,7 +572,7 @@ def render_html_content(
                 count = title_data.get("count", 1)
                 is_new = title_data.get("is_new", False)
                 rank_threshold = title_data.get("rank_threshold", 10)
-                
+
                 # 生成排名列表
                 rank_html = ""
                 if ranks:
@@ -575,114 +582,118 @@ def render_html_content(
                         rank_html += f'<span class="{rank_class}">{rank}</span>'
                     if len(ranks) > 5:
                         rank_html += f'<span class="rank">+{len(ranks)-5}</span>'
-                    rank_html += '</div>'
-                
+                    rank_html += "</div>"
+
                 # 生成标题链接
                 if url:
                     title_html = f'<a href="{url}" target="_blank">{title}</a>'
                 else:
                     title_html = title
-                
-                html += f'''
+
+                html += f"""
                 <div class="news-item">
                     <div class="news-title">{title_html}</div>
                     <div class="news-meta">
                         <span class="meta-item">📰 {source}</span>
-'''
-                
+"""
+
                 if time_display:
                     html += f'                        <span class="meta-item">⏰ {time_display}</span>\n'
-                
+
                 if rank_html:
                     html += f'                        <span class="meta-item">{rank_html}</span>\n'
-                
+
                 if count > 1:
                     html += f'                        <span class="badge multiple">出现 {count} 次</span>\n'
-                
+
                 if is_new:
-                    html += '                        <span class="badge new">NEW</span>\n'
-                
-                html += '''
+                    html += (
+                        '                        <span class="badge new">NEW</span>\n'
+                    )
+
+                html += """
                     </div>
                 </div>
-'''
-            
-            html += '''
+"""
+
+            html += """
             </div>
-'''
+"""
     else:
-        html += '''
+        html += """
             <div class="empty">
                 <div class="empty-icon">📭</div>
                 <div class="empty-text">暂无匹配的新闻</div>
             </div>
-'''
-    
+"""
+
     # 新增新闻
     if not report_data.get("hide_new_section", False) and report_data.get("new_titles"):
-        html += '''
+        html += """
             <div class="section">
                 <div class="section-title">
                     <span>🆕 新增新闻</span>
                 </div>
-'''
-        
+"""
+
         for source in report_data["new_titles"]:
             source_name = source.get("source_name", "")
             titles = source.get("titles", [])
-            
+
             if titles:
-                html += f'''
+                html += f"""
                 <div class="source-group">
                     <div class="source-title">{source_name}</div>
-'''
-                
+"""
+
                 for title_data in titles:
                     title = title_data.get("title", "")
                     url = title_data.get("url", "")
                     ranks = title_data.get("ranks", [])
                     rank_threshold = title_data.get("rank_threshold", 10)
-                    
+
                     # 生成排名
                     rank_html = ""
                     if ranks:
                         rank_html = '<div class="rank-list">'
                         for rank in ranks[:5]:
-                            rank_class = "rank hot" if rank <= rank_threshold else "rank"
+                            rank_class = (
+                                "rank hot" if rank <= rank_threshold else "rank"
+                            )
                             rank_html += f'<span class="{rank_class}">{rank}</span>'
-                        rank_html += '</div>'
-                    
+                        rank_html += "</div>"
+
                     # 生成标题链接
                     if url:
                         title_html = f'<a href="{url}" target="_blank">{title}</a>'
                     else:
                         title_html = title
-                    
-                    html += f'''
+
+                    html += f"""
                     <div class="news-item">
                         <div class="news-title">{title_html}</div>
                         <div class="news-meta">
                             <span class="meta-item">📰 {source_name}</span>
-'''
-                    
+"""
+
                     if rank_html:
                         html += f'                            <span class="meta-item">{rank_html}</span>\n'
-                    
-                    html += '''
+
+                    html += """
                             <span class="badge new">NEW</span>
                         </div>
                     </div>
-'''
-                
-                html += '''
+"""
+
+                html += """
                 </div>
-'''
-        
-        html += '''
+"""
+
+        html += """
             </div>
-'''
-    
-    html += '''
+"""
+
+    html += """
         </div>
     </div>
     
@@ -718,20 +729,18 @@ def render_html_content(
     </script>
 </body>
 </html>
-'''
-    
+"""
+
     return html
 
 
 def _render_simple_html(
-    report_data: Dict,
-    total_titles: int,
-    mode: str = "daily"
+    report_data: Dict, total_titles: int, mode: str = "daily"
 ) -> str:
     """渲染简化版 HTML（备用方案）"""
     now = get_beijing_time()
-    
-    html = f'''<!DOCTYPE html>
+
+    html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -775,40 +784,39 @@ def _render_simple_html(
                 <div class="stat-value">{now.strftime("%H:%M")}</div>
             </div>
         </div>
-'''
-    
+"""
+
     # 添加统计数据
     if report_data.get("stats"):
         for i, stat in enumerate(report_data["stats"], 1):
             word = html_escape(stat["word"])
             count = stat["count"]
-            
-            html += f'''
+
+            html += f"""
         <div class="word-group">
             <div class="word-header">{i}. {word} ({count} 条)</div>
-'''
-            
+"""
+
             for j, title_data in enumerate(stat["titles"][:10], 1):  # 只显示前10条
                 title = html_escape(title_data["title"])
                 source = html_escape(title_data["source_name"])
-                
-                html += f'''
+
+                html += f"""
             <div class="news-item">
                 <div class="news-title">{j}. {title}</div>
                 <div class="news-meta">来源: {source}</div>
             </div>
-'''
-            
-            html += '        </div>\n'
-    
-    html += f'''
+"""
+
+            html += "        </div>\n"
+
+    html += f"""
         <div class="footer">
             <p>由 TrendRadar v3.0 生成 · {now.strftime("%Y-%m-%d %H:%M:%S")}</p>
             <p><a href="https://github.com/sansan0/TrendRadar" target="_blank">GitHub 开源项目</a></p>
         </div>
     </div>
 </body>
-</html>'''
-    
-    return html
+</html>"""
 
+    return html

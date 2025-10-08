@@ -10,4 +10,3 @@ __author__ = "TrendRadar Team"
 from . import core, notifiers, utils
 
 __all__ = ["core", "notifiers", "utils"]
-

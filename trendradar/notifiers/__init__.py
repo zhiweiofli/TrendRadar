@@ -5,10 +5,10 @@
 """
 
 from .base import BaseNotifier
-from .feishu import FeishuNotifier
 from .dingtalk import DingTalkNotifier
-from .wework import WeWorkNotifier
+from .feishu import FeishuNotifier
 from .telegram import TelegramNotifier
+from .wework import WeWorkNotifier
 
 __all__ = [
     "BaseNotifier",

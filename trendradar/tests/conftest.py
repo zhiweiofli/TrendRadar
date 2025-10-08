@@ -1,9 +1,11 @@
 """
 pytest 配置文件和通用 fixtures
 """
-import pytest
+
 from pathlib import Path
 from typing import Dict
+
+import pytest
 
 
 @pytest.fixture
@@ -83,4 +85,3 @@ def sample_frequency_words() -> Dict[str, int]:
         "教育": 2,
         "经济": 1,
     }
-
