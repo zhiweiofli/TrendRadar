@@ -542,6 +542,7 @@ frequency_words.txt 文件增加了一个【必须词】功能，使用 + 号
         - 🚫 自动禁用通知推送
         - 📱 自动发布到 GitHub Pages（如果启用）
       - 适用场景：调试配置、验证新闻源、排查问题
+      - 📖 详细文档：[测试模式使用指南](docs/TEST_MODE_GUIDE.md)
 
     - **关键词配置**: 修改 [config/frequency_words.txt](config/frequency_words.txt) 文件，添加你关心的关键词
     

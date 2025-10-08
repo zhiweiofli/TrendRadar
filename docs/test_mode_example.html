@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mode Example - 热点新闻分析</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            margin: 0; 
+            padding: 16px; 
+            background: #fafafa;
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 32px 24px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 20px 0;
+        }
+        
+        .header-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            display: block;
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 24px;
+        }
+
+        .debug-section {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .debug-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        .debug-content {
+            font-size: 13px;
+            color: #78350f;
+            line-height: 1.6;
+        }
+
+        .debug-content ul {
+            margin: 4px 0;
+            padding-left: 20px;
+        }
+
+        .debug-content strong {
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">热点新闻分析</div>
+            <div class="header-info">
+                <div class="info-item">
+                    <span class="info-label">报告类型</span>
+                    <span class="info-value">🧪 测试模式</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">新闻总数</span>
+                    <span class="info-value">125</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">匹配关键词</span>
+                    <span class="info-value">8</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">生成时间</span>
+                    <span class="info-value">10-08 09:00</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="debug-section">
+                <div class="debug-title">🔍 调试信息</div>
+                <div class="debug-content">
+                    <div style="margin-bottom: 8px;">
+                        <strong>说明：</strong>测试模式用于调试新闻抓取功能
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>功能：</strong>
+                        <ul>
+                            <li>显示所有平台的抓取结果</li>
+                            <li>显示详细的调试日志</li>
+                            <li>禁用通知推送</li>
+                            <li>自动生成到 GitHub Pages</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>总新闻数：</strong>125
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                <div style="font-weight: 600; margin-bottom: 12px; color: #374151;">
+                    📊 平台统计示例
+                </div>
+                <div style="font-size: 14px; color: #6b7280; line-height: 1.8;">
+                    <div>✅ 今日头条: 50 条新闻</div>
+                    <div>✅ 百度热搜: 30 条新闻</div>
+                    <div>✅ 微博: 45 条新闻</div>
+                    <div style="color: #dc2626;">❌ 知乎: 请求失败</div>
+                </div>
+            </div>
+
+            <div style="background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 16px;">
+                <div style="font-weight: 600; margin-bottom: 8px; color: #065f46;">
+                    💡 提示
+                </div>
+                <div style="font-size: 13px; color: #047857; line-height: 1.6;">
+                    测试模式会自动禁用所有通知推送，确保不会发送测试数据到生产环境。完成测试后，请将 <code>test_mode</code> 设置为 <code>false</code>。
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
