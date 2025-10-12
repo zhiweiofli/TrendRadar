@@ -101,7 +101,9 @@ def _build_config_dict(config_data: Dict) -> Dict:
         # 权重配置（支持新旧两种格式）
         "WEIGHT_CONFIG": {
             "RANK_WEIGHT": config_data.get("weight", {}).get("rank_weight", 0.6),
-            "FREQUENCY_WEIGHT": config_data.get("weight", {}).get("frequency_weight", 0.3),
+            "FREQUENCY_WEIGHT": config_data.get("weight", {}).get(
+                "frequency_weight", 0.3
+            ),
             "HOTNESS_WEIGHT": config_data.get("weight", {}).get("hotness_weight", 0.1),
         },
         # 平台配置
