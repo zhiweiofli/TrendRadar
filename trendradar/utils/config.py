@@ -136,6 +136,14 @@ def _build_config_dict(config_data: Dict) -> Dict:
 def load_frequency_words(file_path: Optional[str] = None):
     """加载频率词配置
 
+    支持两种格式：
+    1. 旧格式（每行一个词组）：[必须词] 普通词1, 普通词2, 普通词3
+    2. 新格式（多行分组）：
+       +必须词1
+       +必须词2
+       普通词1
+       普通词2
+
     Args:
         file_path: 频率词文件路径
 
@@ -153,41 +161,60 @@ def load_frequency_words(file_path: Optional[str] = None):
         raise FileNotFoundError(f"频率词文件 {file_path} 不存在")
 
     with open(words_file, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    word_groups = [group.strip() for group in content.split("\n\n") if group.strip()]
+        lines = f.readlines()
 
     processed_groups = []
     filter_words = []
+    is_filter_section = False
 
-    for group in word_groups:
-        words = [word.strip() for word in group.split("\n") if word.strip()]
+    for line in lines:
+        line = line.strip()
 
-        group_required_words = []
-        group_normal_words = []
-        group_filter_words = []
+        # 跳过空行和注释
+        if not line or line.startswith("#"):
+            continue
 
-        for word in words:
-            if word.startswith("!"):
-                filter_words.append(word[1:])
-                group_filter_words.append(word[1:])
-            elif word.startswith("+"):
-                group_required_words.append(word[1:])
-            else:
-                group_normal_words.append(word)
+        # 检测过滤词分隔符
+        if line == "---":
+            is_filter_section = True
+            continue
 
-        if group_required_words or group_normal_words:
-            if group_normal_words:
-                group_key = " ".join(group_normal_words)
-            else:
-                group_key = " ".join(group_required_words)
+        # 处理过滤词
+        if is_filter_section:
+            # 分割逗号分隔的过滤词
+            words = [w.strip() for w in line.split(",") if w.strip()]
+            filter_words.extend(words)
+            continue
 
-            processed_groups.append(
-                {
-                    "required": group_required_words,
-                    "normal": group_normal_words,
-                    "group_key": group_key,
-                }
-            )
+        # 处理词组配置（支持 [必须词] 普通词1, 普通词2 格式）
+        if line.startswith("[") and "]" in line:
+            # 提取必须词和普通词
+            bracket_end = line.index("]")
+            required_part = line[1:bracket_end].strip()  # 提取 [] 中的内容
+            normal_part = line[bracket_end + 1 :].strip()  # 提取 ] 后的内容
+
+            # 解析必须词（可能有多个，逗号分隔）
+            group_required_words = [
+                w.strip() for w in required_part.split(",") if w.strip()
+            ]
+
+            # 解析普通词（逗号分隔）
+            group_normal_words = [
+                w.strip() for w in normal_part.split(",") if w.strip()
+            ]
+
+            if group_required_words or group_normal_words:
+                if group_normal_words:
+                    group_key = " ".join(group_normal_words[:3])  # 使用前3个词作为 key
+                else:
+                    group_key = " ".join(group_required_words)
+
+                processed_groups.append(
+                    {
+                        "required": group_required_words,
+                        "normal": group_normal_words,
+                        "group_key": group_key,
+                    }
+                )
 
     return processed_groups, filter_words
