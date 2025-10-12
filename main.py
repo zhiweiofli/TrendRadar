@@ -223,14 +223,9 @@ class TrendRadarApp:
         mode = self.config.get("REPORT_MODE", "daily")
         rank_threshold = self.config.get("RANK_THRESHOLD", 10)
         
-        # 读取权重配置
-        weight_config = self.config.get("weight", {})
+        # 读取权重配置（从配置字典中获取，config.py 已处理向后兼容）
+        weight_config = self.config.get("WEIGHT_CONFIG")
         if weight_config:
-            weight_config = {
-                "RANK_WEIGHT": weight_config.get("rank_weight", 0.6),
-                "FREQUENCY_WEIGHT": weight_config.get("frequency_weight", 0.3),
-                "HOTNESS_WEIGHT": weight_config.get("hotness_weight", 0.1),
-            }
             logger.info(f"📊 权重配置: 排名{weight_config['RANK_WEIGHT']:.1%} | 频次{weight_config['FREQUENCY_WEIGHT']:.1%} | 热度{weight_config['HOTNESS_WEIGHT']:.1%}")
         else:
             weight_config = None  # 使用默认值

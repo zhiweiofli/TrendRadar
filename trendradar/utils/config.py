@@ -61,9 +61,11 @@ def _build_config_dict(config_data: Dict) -> Dict:
         "ENABLE_ASYNC": config_data["crawler"].get(
             "enable_async", True
         ),  # 新增异步开关
-        # 报告配置
-        "REPORT_MODE": config_data["report"]["mode"],
-        "RANK_THRESHOLD": config_data["report"]["rank_threshold"],
+        # 报告配置（支持新旧两种格式，优先使用旧格式保持向后兼容）
+        "REPORT_MODE": config_data.get("REPORT_MODE")
+        or config_data.get("report", {}).get("mode", "daily"),
+        "RANK_THRESHOLD": config_data.get("RANK_THRESHOLD")
+        or config_data.get("report", {}).get("rank_threshold", 10),
         # 通知配置
         "ENABLE_NOTIFICATION": config_data["notification"]["enable_notification"],
         "MESSAGE_BATCH_SIZE": config_data["notification"]["message_batch_size"],
@@ -96,11 +98,11 @@ def _build_config_dict(config_data: Dict) -> Dict:
             .get("silent_push", {})
             .get("push_record_retention_days", 7),
         },
-        # 权重配置
+        # 权重配置（支持新旧两种格式）
         "WEIGHT_CONFIG": {
-            "RANK_WEIGHT": config_data["weight"]["rank_weight"],
-            "FREQUENCY_WEIGHT": config_data["weight"]["frequency_weight"],
-            "HOTNESS_WEIGHT": config_data["weight"]["hotness_weight"],
+            "RANK_WEIGHT": config_data.get("weight", {}).get("rank_weight", 0.6),
+            "FREQUENCY_WEIGHT": config_data.get("weight", {}).get("frequency_weight", 0.3),
+            "HOTNESS_WEIGHT": config_data.get("weight", {}).get("hotness_weight", 0.1),
         },
         # 平台配置
         "PLATFORMS": config_data["platforms"],
