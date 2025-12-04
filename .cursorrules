@@ -1,0 +1,330 @@
+# TrendRadar 开发规范
+
+## 项目定位
+TrendRadar 是一个轻量级的全网热点聚合与智能推送系统。
+核心理念：**轻量化、易部署、用户自主、算法透明**
+
+## 架构演进策略
+
+### 当前架构
+- **单文件设计**：main.py 包含所有核心逻辑（3800+行）
+- **优势**：便于用户快速复制升级，降低维护门槛
+- **劣势**：耦合度高，扩展困难，测试不足
+
+### 目标架构
+```
+trendradar/
+├── core/              # 核心业务逻辑
+│   ├── fetcher.py    # 数据抓取
+│   ├── analyzer.py   # 数据分析
+│   ├── matcher.py    # 关键词匹配
+│   └── reporter.py   # 报告生成
+├── notifiers/         # 推送渠道
+│   ├── base.py       # 推送基类
+│   ├── feishu.py     # 飞书
+│   ├── dingtalk.py   # 钉钉
+│   ├── wework.py     # 企业微信
+│   └── telegram.py   # Telegram
+├── utils/             # 工具函数
+│   ├── config.py     # 配置管理
+│   ├── logger.py     # 日志系统
+│   ├── time_utils.py # 时间处理
+│   └── file_utils.py # 文件操作
+├── tests/             # 测试代码
+└── main.py           # 主入口（保持兼容）
+```
+
+### 迁移原则
+1. **渐进式重构**：每次只迁移1-2个模块
+2. **向后兼容**：main.py 保持作为入口点
+3. **双版本并存**：重构期间保持旧版本可用
+4. **充分测试**：每次迁移都要有测试覆盖
+
+## 代码规范
+
+### 命名规范
+```python
+# 类名：大驼峰
+class DataFetcher:
+    pass
+
+# 函数/变量：小写下划线
+def fetch_news_data():
+    news_items = []
+
+# 常量：大写下划线
+MAX_RETRY_TIMES = 3
+DEFAULT_TIMEOUT = 10
+
+# 私有方法：下划线前缀
+def _internal_helper():
+    pass
+```
+
+### 类型注解（强制要求）
+```python
+from typing import Dict, List, Optional, Tuple
+
+def fetch_platform_data(
+    platform_id: str,
+    proxy: Optional[str] = None,
+    timeout: int = 10
+) -> Dict[str, any]:
+    """获取平台数据
+    
+    Args:
+        platform_id: 平台ID
+        proxy: 代理地址（可选）
+        timeout: 超时时间（秒）
+    
+    Returns:
+        包含新闻数据的字典
+    
+    Raises:
+        RequestException: 网络请求失败
+        ValueError: 参数不合法
+    """
+    pass
+```
+
+### 错误处理规范
+```python
+# ❌ 避免捕获所有异常
+try:
+    do_something()
+except:
+    pass
+
+# ✅ 精确捕获并处理
+try:
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()
+except requests.Timeout:
+    logger.error(f"请求超时: {url}")
+    return None
+except requests.RequestException as e:
+    logger.error(f"请求失败: {url}, 错误: {e}")
+    return None
+```
+
+### 日志规范
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+# 逐步替换 print，使用标准日志
+logger.debug("详细的调试信息")      # 开发调试用
+logger.info("配置加载成功")         # 正常流程记录
+logger.warning("API返回数据为空")   # 潜在问题
+logger.error("网络请求失败")        # 错误但可恢复
+logger.critical("配置文件缺失")     # 严重错误
+```
+
+## 开发流程
+
+### 问题排查步骤
+1. **查看日志**：检查最近的错误日志
+2. **验证配置**：确认 config.yaml 和 frequency_words.txt 格式正确
+3. **测试网络**：验证 API 可访问性
+4. **隔离问题**：使用测试模式（TEST_MODE=true）调试
+5. **检查依赖**：确认 requirements.txt 中的依赖版本
+
+### 新增数据源流程
+```python
+# 1. 在 config/config.yaml 注册平台
+platforms:
+  - id: "new-platform"
+    name: "新平台名称"
+
+# 2. 实现适配器（如需要）
+class NewPlatformAdapter:
+    def parse_response(self, response: Dict) -> List[NewsItem]:
+        """解析API响应"""
+        pass
+
+# 3. 添加测试
+def test_new_platform_adapter():
+    adapter = NewPlatformAdapter()
+    result = adapter.parse_response(mock_data)
+    assert len(result) > 0
+```
+
+### 新增推送渠道流程
+```python
+# 1. 继承基类
+from notifiers.base import BaseNotifier
+
+class NewChannelNotifier(BaseNotifier):
+    def validate_config(self) -> bool:
+        """验证配置"""
+        return 'webhook_url' in self.config
+    
+    def send(self, message: str) -> bool:
+        """发送消息"""
+        pass
+
+# 2. 注册到配置
+notification:
+  webhooks:
+    new_channel_url: ""
+
+# 3. 添加测试
+def test_new_channel_notifier():
+    notifier = NewChannelNotifier(config)
+    assert notifier.send("test message")
+```
+
+## 代码质量标准
+
+### 函数复杂度
+- 单个函数不超过 **50 行**
+- 圈复杂度不超过 **10**
+- 嵌套层级不超过 **4 层**
+
+### 测试覆盖率
+- 核心业务逻辑：≥ **80%**
+- 工具函数：≥ **90%**
+- 新增功能：**100%**
+
+### 性能目标
+- 11个平台数据抓取：< **30秒**（并发优化后）
+- 1000条新闻分析处理：< **5秒**
+- 报告生成：< **3秒**
+- 内存占用：< **200MB**
+
+### 文档要求
+- 所有公共函数必须有 docstring
+- 复杂逻辑必须有注释说明
+- API 变更必须更新文档
+- 每次发布必须更新 CHANGELOG
+
+## Git 工作流
+
+### 分支策略
+```
+master          # 生产分支
+├── develop     # 开发分支
+├── feature/*   # 功能分支
+├── bugfix/*    # 修复分支
+└── release/*   # 发布分支
+```
+
+### 提交规范
+```
+<type>(<scope>): <subject>
+
+类型：
+- feat: 新功能
+- fix: 缺陷修复
+- refactor: 重构
+- perf: 性能优化
+- test: 测试
+- docs: 文档
+- chore: 构建/工具
+
+示例：
+feat(fetcher): 实现并发抓取功能
+
+- 使用 asyncio + aiohttp
+- 性能提升 3 倍
+- 添加错误重试机制
+
+Closes #123
+```
+
+## 代码审查清单
+
+提交 PR 前自检：
+
+**功能性**
+- [ ] 功能符合需求
+- [ ] 边界条件已处理
+- [ ] 异常情况已考虑
+
+**代码质量**
+- [ ] 遵循命名规范
+- [ ] 添加类型注解
+- [ ] 无重复代码
+- [ ] 无硬编码
+
+**测试**
+- [ ] 单元测试覆盖
+- [ ] 集成测试通过
+- [ ] 手动验证
+
+**文档**
+- [ ] 代码注释完整
+- [ ] README 已更新
+- [ ] CHANGELOG 已更新
+
+**性能与安全**
+- [ ] 无性能问题
+- [ ] 无敏感信息泄露
+- [ ] 输入验证完整
+
+## 快速参考
+
+### 本地开发环境
+```bash
+# 安装依赖
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # 开发依赖
+
+# 运行测试
+pytest tests/ -v --cov=trendradar
+
+# 代码格式化
+black trendradar/
+isort trendradar/
+
+# 类型检查
+mypy trendradar/
+
+# 运行程序
+python main.py
+```
+
+### 调试技巧
+```bash
+# 启用测试模式
+export TEST_MODE=true
+python main.py
+
+# 查看详细日志
+export LOG_LEVEL=DEBUG
+python main.py
+
+# 使用代理
+export USE_PROXY=true
+python main.py
+```
+
+## 向后兼容承诺
+
+1. **配置文件兼容**：新版本兼容旧版配置
+2. **数据格式兼容**：历史数据可正常读取
+3. **API 稳定性**：重大变更提前 3 个版本标记 Deprecated
+
+## 开发优先级
+
+**P0 - 立即处理**
+- 生产环境 Bug
+- 安全漏洞
+- 数据丢失风险
+
+**P1 - 本周处理**
+- 影响用户体验的问题
+- 性能优化
+- 代码质量改进
+
+**P2 - 计划处理**
+- 新功能开发
+- 技术债务
+- 文档完善
+
+---
+
+**最后更新**: 2025-10-08  
+**维护者**: TrendRadar 开发团队
+
