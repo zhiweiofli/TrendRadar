@@ -8,12 +8,11 @@ __pycache__/
 output/
 
 # TrendRadar 输出文件 (HTML reports - now deployed via gh-pages)
-index.html
-当日汇总.html
-当前榜单汇总.html
-当日增量.html
-测试报告.html
-*.html
+/index.html
+/当日汇总.html
+/当前榜单汇总.html
+/当日增量.html
+/测试报告.html
 
 # Virtual environment
 venv/

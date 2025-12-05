@@ -9,6 +9,8 @@ on:
 # 添加权限设置
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   crawl:
@@ -63,6 +65,11 @@ jobs:
           name: trend-reports-${{ github.run_id }}
           path: |
             output/
+            index.html
+            当日汇总.html
+            当前榜单汇总.html
+            当日增量.html
+            测试报告.html
           retention-days: 7
         if: always()
 
