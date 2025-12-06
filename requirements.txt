@@ -1,4 +1,0 @@
-requests==2.32.4
-aiohttp==3.9.5
-pytz==2025.2
-PyYAML==6.0.2
