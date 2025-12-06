@@ -9,6 +9,8 @@ on:
 # 添加权限设置
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   crawl:
@@ -57,9 +59,47 @@ jobs:
           GITHUB_ACTIONS: true
         run: python main.py
 
-      - name: Commit and push if changes
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          git add -A
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update by GitHub Actions at $(TZ=Asia/Shanghai date)" && git push)
+      - name: Upload output artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: trend-reports-${{ github.run_id }}
+          path: |
+            output/
+            index.html
+            当日汇总.html
+            当前榜单汇总.html
+            当日增量.html
+            测试报告.html
+          retention-days: 7
+        if: always()
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          force_orphan: true
+          enable_jekyll: false
+          exclude_assets: |
+            output/
+            .github/
+            .git/
+            config/
+            trendradar/
+            docker/
+            docs/
+            examples/
+            _image/
+            *.py
+            *.txt
+            *.md
+            *.toml
+            *.ini
+            .dockerignore
+            .gitignore
+            .cursorrules
+            LICENSE
+            version
+            fixed_index_page_screenshot.png
+        if: always()
