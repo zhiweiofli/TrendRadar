@@ -75,33 +75,28 @@ jobs:
           retention-days: 7
         if: always()
 
+      - name: Prepare files for GitHub Pages
+        run: |
+          mkdir -p public
+          # Copy HTML files to public directory
+          for file in index.html 当日汇总.html 当前榜单汇总.html 当日增量.html 测试报告.html; do
+            if [ -f "$file" ]; then
+              cp -f "$file" public/
+              echo "✅ Copied: $file"
+            else
+              echo "⚠️ File not found: $file (skipping)"
+            fi
+          done
+          echo "📁 Files prepared for GitHub Pages:"
+          ls -la public/
+        if: always()
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+          publish_dir: ./public
           publish_branch: gh-pages
           force_orphan: false
           enable_jekyll: false
-          exclude_assets: |
-            output/
-            .github/
-            .git/
-            config/
-            trendradar/
-            docker/
-            docs/
-            examples/
-            _image/
-            *.py
-            *.txt
-            *.md
-            *.toml
-            *.ini
-            .dockerignore
-            .gitignore
-            .cursorrules
-            LICENSE
-            version
-            fixed_index_page_screenshot.png
         if: always()
