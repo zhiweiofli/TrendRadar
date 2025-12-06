@@ -7,6 +7,9 @@ __pycache__/
 # Output directory (temporary data)
 output/
 
+# GitHub Pages build directory
+public/
+
 # TrendRadar 输出文件 (HTML reports - now deployed via gh-pages)
 /index.html
 /当日汇总.html
