@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding=utf-8
 """
-TrendRadar v3.0 - 全网热点聚合与智能推送系统
+TrendRadar v4.0 - 全网热点聚合与智能推送系统
 
 主程序入口，集成所有重构后的模块
 """
@@ -45,7 +45,7 @@ from trendradar.utils import (
 from trendradar.utils.exceptions import ConfigError, FetchError
 
 # 版本信息
-VERSION = "3.0.0"
+VERSION = "4.0.0"
 
 # 初始化日志
 logger = init_app_logger(log_level="INFO")
