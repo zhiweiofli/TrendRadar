@@ -27,10 +27,12 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Install dependencies
+      - name: Create virtual environment and install dependencies
         run: |
+          python -m venv .venv
+          . .venv/bin/activate
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install -r requirements.txt
 
       - name: Verify required files
         run: |
@@ -59,7 +61,9 @@ jobs:
           WEWORK_WEBHOOK_URL: ${{ secrets.WEWORK_WEBHOOK_URL }}
           TEST_MODE: ${{ secrets.TEST_MODE || 'false' }}
           GITHUB_ACTIONS: true
-        run: python main.py
+        run: |
+          . .venv/bin/activate
+          python main.py
 
       - name: Upload output artifacts
         uses: actions/upload-artifact@v4
